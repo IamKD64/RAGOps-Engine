@@ -19,13 +19,13 @@ The project also includes an **evaluation harness** (Recall\@K, MRR, chunk-level
 
 ### Generated Answer with Sources
 ![Answer with citations](docs/Result.png)
-![Answer with citations](docs/Results.png)
+![Answer with citations](docs/Result_2.png)
 
 ### Evaluation Results
 ![Retrieval evaluation](docs/Evaluation.png)
 
 ### Evaluation Results
-![Retrieval strategy](docs/Retrival_Strategy.png)
+![Retrieval strategy](docs/Retrieval_Strategy.png)
 
 ---
 
