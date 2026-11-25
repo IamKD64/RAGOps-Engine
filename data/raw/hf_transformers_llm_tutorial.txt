@@ -1,0 +1,103 @@
+Transformers: Text generation
+# Text generation
+
+[[open-in-colab]]
+
+Text generation is the most popular application for large language models (LLMs). A LLM is trained to generate the next word (token) given some initial text (prompt) along with its own generated outputs up to a predefined length or when it reaches an end-of-sequence (`EOS`) token.
+
+In Transformers, the [`~GenerationMixin.generate`] API handles text generation, and it is available for all models with generative capabilities. This guide will show you the basics of text generation with [`~GenerationMixin.generate`] and some common pitfalls to avoid.
+
+> [!TIP]
+> For the following commands, please make sure `transformers serve` is running.
+>
+> 
+
+## Default generate
+
+Before you begin, it's helpful to install bitsandbytes to quantize really large models to reduce their memory usage.
+
+Bitsandbytes supports multiple backends in addition to CUDA-based GPUs. Refer to the multi-backend installation guide to learn more.
+
+Load a LLM with [`~PreTrainedModel.from_pretrained`] and add the following two parameters to reduce the memory requirements.
+
+- `device_map="auto"` enables Accelerates' Big Model Inference feature for automatically initiating the model skeleton and loading and dispatching the model weights across all available devices, starting with the fastest device (GPU).
+- `quantization_config` is a configuration object that defines the quantization settings. This examples uses bitsandbytes as the quantization backend (see the Quantization section for more available backends) and it loads the model in 4-bits.
+
+Tokenize your input, and set the [`~PreTrainedTokenizer.padding_side`] parameter to `"left"` because a LLM is not trained to continue generation from padding tokens. The tokenizer returns the input ids and attention mask.
+
+> [!TIP]
+> Process more than one prompt at a time by passing a list of strings to the tokenizer. Batch the inputs to improve throughput at a small cost to latency and memory.
+
+Pass the inputs to [`~GenerationMixin.generate`] to generate tokens, and [`~PreTrainedTokenizer.batch_decode`] the generated tokens back to text.
+
+## Generation configuration
+
+All generation settings are contained in [`GenerationConfig`]. In the example above, the generation settings are derived from the `generation_config.json` file of mistralai/Mistral-7B-v0.1. A default decoding strategy is used when no configuration is saved with a model.
+
+Inspect the configuration through the `generation_config` attribute. It only shows values that are different from the default configuration, in this case, the `bos_token_id` and `eos_token_id`.
+
+You can customize [`~GenerationMixin.generate`] by overriding the parameters and values in [`GenerationConfig`]. See this section below for commonly adjusted parameters.
+
+[`~GenerationMixin.generate`] can also be extended with external libraries or custom code:
+
+1. the `logits_processor` parameter accepts custom [`LogitsProcessor`] instances for manipulating the next token probability distribution;
+2. the `stopping_criteria` parameters supports custom [`StoppingCriteria`] to stop text generation;
+3. other custom generation methods can be loaded through the `custom_generate` flag (docs).
+
+Refer to the Generation strategies guide to learn more about search, sampling, and decoding strategies.
+
+### Saving
+
+Create an instance of [`GenerationConfig`] and specify the decoding parameters you want.
+
+Use [`~GenerationConfig.save_pretrained`] to save a specific generation configuration and set the `push_to_hub` parameter to `True` to upload it to the Hub.
+
+Leave the `config_file_name` parameter empty. This parameter should be used when storing multiple generation configurations in a single directory. It gives you a way to specify which generation configuration to load. You can create different configurations for different generative tasks (creative text generation with sampling, summarization with beam search) for use with a single model.
+
+## Common Options
+
+[`~GenerationMixin.generate`] is a powerful tool that can be heavily customized. This can be daunting for a new users. This section contains a list of popular generation options that you can define in most text generation tools in Transformers: [`~GenerationMixin.generate`], [`GenerationConfig`], `pipelines`, the `chat` CLI, ...
+
+| Option name | Type | Simplified description |
+|---|---|---|
+| `max_new_tokens` | `int` | Controls the maximum generation length. Be sure to define it, as it usually defaults to a small value. |
+| `do_sample` | `bool` | Defines whether generation will sample the next token (`True`), or is greedy instead (`False`). Most use cases should set this flag to `True`. Check this guide for more information. |
+| `temperature` | `float` | How unpredictable the next selected token will be. High values (`>0.8`) are good for creative tasks, low values (e.g. `<0.4`) for tasks that require "thinking". Requires `do_sample=True`. |
+| `num_beams` | `int` | When set to `>1`, activates the beam search algorithm. Beam search is good on input-grounded tasks. Check this guide for more information. |
+| `repetition_penalty` | `float` | Set it to `>1.0` if you're seeing the model repeat itself often. Larger values apply a larger penalty. |
+| `eos_token_id` | `list[int]` | The token(s) that will cause generation to stop. The default value is usually good, but you can specify a different token. |
+
+## Pitfalls
+
+The section below covers some common issues you may encounter during text generation and how to solve them.
+
+### Output length
+
+[`~GenerationMixin.generate`] returns up to 20 tokens by default unless otherwise specified in a models [`GenerationConfig`]. It is highly recommended to manually set the number of generated tokens with the [`max_new_tokens`] parameter to control the output length. Decoder-only models returns the initial prompt along with the generated tokens.
+
+### Decoding strategy
+
+The default decoding strategy in [`~GenerationMixin.generate`] is *greedy search*, which selects the next most likely token, unless otherwise specified in a models [`GenerationConfig`]. While this decoding strategy works well for input-grounded tasks (transcription, translation), it is not optimal for more creative use cases (story writing, chat applications).
+
+For example, enable a multinomial sampling strategy to generate more diverse outputs. Refer to the Generation strategy guide for more decoding strategies.
+
+### Padding side
+
+Inputs need to be padded if they don't have the same length. But LLMs aren't trained to continue generation from padding tokens, which means the [`~PreTrainedTokenizer.padding_side`] parameter needs to be set to the left of the input. Right padding is worse for state-space and hybrid models because their recurrent state keeps updating over the trailing pad tokens, so the cache no longer matches the end of the prompt.
+
+### Prompt format
+
+Some models and tasks expect a certain input prompt format, and if the format is incorrect, the model returns a suboptimal output. You can learn more about prompting in the prompt engineering guide.
+
+For example, a chat model expects the input as a chat template. Your prompt should include a `role` and `content` to indicate who is participating in the conversation. If you try to pass your prompt as a single string, the model doesn't always return the expected output.
+
+## Resources
+
+Take a look below for some more specific and specialized text generation libraries.
+
+- Optimum: an extension of Transformers focused on optimizing training and inference on specific hardware devices
+- Outlines: a library for constrained text generation (generate JSON files for example).
+- SynCode: a library for context-free grammar guided generation (JSON, SQL, Python).
+- Text Generation Inference: a production-ready server for LLMs.
+- Text generation web UI: a Gradio web UI for text generation.
+- logits-processor-zoo: additional logits processors for controlling text generation.

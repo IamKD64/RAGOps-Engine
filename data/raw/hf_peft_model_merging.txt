@@ -1,0 +1,36 @@
+PEFT: Model merging
+# Model merging
+
+Training a model for each task can be costly, take up storage space, and the models aren't able to learn new information to improve their performance. Multitask learning can overcome some of these limitations by training a model to learn several tasks, but it is expensive to train and designing a dataset for it is challenging. *Model merging* offers a solution to these challenges by combining multiple pretrained models into one model, giving it the combined abilities of each individual model without any additional training.
+
+PEFT provides several methods for merging models like a linear or SVD combination. This guide focuses on two methods that are more efficient for merging LoRA adapters by eliminating redundant parameters:
+
+* TIES - TrIm, Elect, and Merge (TIES) is a three-step method for merging models. First, redundant parameters are trimmed, then conflicting signs are resolved into an aggregated vector, and finally the parameters whose signs are the same as the aggregate sign are averaged. This method takes into account that some values (redundant and sign disagreement) can degrade performance in the merged model.
+* DARE - Drop And REscale is a method that can be used to prepare for other model merging methods like TIES. It works by randomly dropping parameters according to a drop rate and rescaling the remaining parameters. This helps to reduce the number of redundant and potentially interfering parameters among multiple models.
+
+Models are merged with the [`~LoraModel.add_weighted_adapter`] method, and the specific model merging method is specified in the `combination_type` parameter.
+
+## Merge method
+
+With TIES and DARE, merging is enabled by setting `combination_type` and `density` to a value of the weights to keep from the individual models. For example, let's merge three finetuned TinyLlama/TinyLlama-1.1B-intermediate-step-1431k-3T models: tinyllama_lora_nobots, tinyllama_lora_sql, and tinyllama_lora_adcopy.
+
+When you're attempting to merge fully trained models with TIES, you should be aware of any special tokens each model may have added to the embedding layer which are not a part of the original checkpoint's vocabulary. This may cause an issue because each model may have added a special token to the same embedding position. If this is the case, you should use the [`~transformers.PreTrainedModel.resize_token_embeddings`] method to avoid merging the special tokens at the same embedding index.
+
+<br>
+
+This shouldn't be an issue if you're only merging LoRA adapters trained from the same base model.
+
+Load a base model and can use the [`~PeftModel.load_adapter`] method to load and assign each adapter a name:
+
+Set the adapters, weights, `adapter_name`, `combination_type`, and `density` with the [`~LoraModel.add_weighted_adapter`] method.
+
+Weight values greater than `1.0` typically produce better results because they preserve the correct scale. A good default starting value for the weights is to set all values to `1.0`.
+
+Set the newly merged model as the active model with the [`~LoraModel.set_adapter`] method.
+
+Now you can use the merged model as an instruction-tuned model to write ad copy or SQL queries!
+
+## Merging (IA)³ Models
+The (IA)³ models facilitate linear merging of adapters. To merge adapters in an (IA)³ model, utilize the `add_weighted_adapter` method from the `IA3Model` class. This method is analogous to the `add_weighted_adapter` method used in `LoraModel`, with the key difference being the absence of the `combination_type` parameter. For example, to merge three (IA)³ adapters into a PEFT model, you would proceed as follows:
+
+It is recommended that the weights sum to 1.0 to preserve the scale of the model. The merged model can then be set as the active model using the `set_adapter` method:

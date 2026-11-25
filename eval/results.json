@@ -1,0 +1,78 @@
+{
+  "k": 5,
+  "n_questions": 41,
+  "retrieval": [
+    {
+      "mode": "vector",
+      "tier": "all",
+      "recall@5": 0.951,
+      "mrr": 0.85
+    },
+    {
+      "mode": "bm25",
+      "tier": "all",
+      "recall@5": 0.902,
+      "mrr": 0.764
+    },
+    {
+      "mode": "hybrid",
+      "tier": "all",
+      "recall@5": 0.951,
+      "mrr": 0.837
+    },
+    {
+      "mode": "hybrid_rerank",
+      "tier": "all",
+      "recall@5": 1.0,
+      "mrr": 0.888
+    },
+    {
+      "mode": "vector",
+      "tier": "easy",
+      "recall@5": 0.966,
+      "mrr": 0.914
+    },
+    {
+      "mode": "bm25",
+      "tier": "easy",
+      "recall@5": 0.966,
+      "mrr": 0.845
+    },
+    {
+      "mode": "hybrid",
+      "tier": "easy",
+      "recall@5": 1.0,
+      "mrr": 0.922
+    },
+    {
+      "mode": "hybrid_rerank",
+      "tier": "easy",
+      "recall@5": 1.0,
+      "mrr": 0.943
+    },
+    {
+      "mode": "vector",
+      "tier": "hard",
+      "recall@5": 0.917,
+      "mrr": 0.694
+    },
+    {
+      "mode": "bm25",
+      "tier": "hard",
+      "recall@5": 0.75,
+      "mrr": 0.569
+    },
+    {
+      "mode": "hybrid",
+      "tier": "hard",
+      "recall@5": 0.833,
+      "mrr": 0.632
+    },
+    {
+      "mode": "hybrid_rerank",
+      "tier": "hard",
+      "recall@5": 1.0,
+      "mrr": 0.757
+    }
+  ]
+}

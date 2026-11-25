@@ -1,0 +1,84 @@
+Transformers: Summarization
+# Summarization
+
+[[open-in-colab]]
+
+Summarization creates a shorter version of a document or an article that captures all the important information. Along with translation, it is another example of a task that can be formulated as a sequence-to-sequence task. Summarization can be:
+
+- Extractive: extract the most relevant information from a document.
+- Abstractive: generate new text that captures the most relevant information.
+
+This guide will show you how to:
+
+1. Finetune T5 on the California state bill subset of the BillSum dataset for abstractive summarization.
+2. Use your finetuned model for inference.
+
+To see all architectures and checkpoints compatible with this task, we recommend checking the task-page
+
+Before you begin, make sure you have all the necessary libraries installed:
+
+We encourage you to login to your Hugging Face account so you can upload and share your model with the community. When prompted, enter your token to login:
+
+## Load BillSum dataset
+
+Start by loading the smaller California state bill subset of the BillSum dataset from the 🤗 Datasets library:
+
+Split the dataset into a train and test set with the [`~datasets.Dataset.train_test_split`] method:
+
+Then take a look at an example:
+
+There are two fields that you'll want to use:
+
+- `text`: the text of the bill which'll be the input to the model.
+- `summary`: a condensed version of `text` which'll be the model target.
+
+## Preprocess
+
+The next step is to load a T5 tokenizer to process `text` and `summary`:
+
+The preprocessing function you want to create needs to:
+
+1. Prefix the input with a prompt so T5 knows this is a summarization task. Some models capable of multiple NLP tasks require prompting for specific tasks.
+2. Use the keyword `text_target` argument when tokenizing labels.
+3. Truncate sequences to be no longer than the maximum length set by the `max_length` parameter.
+
+To apply the preprocessing function over the entire dataset, use 🤗 Datasets [`~datasets.Dataset.map`] method. You can speed up the `map` function by setting `batched=True` to process multiple elements of the dataset at once:
+
+Now create a batch of examples using [`DataCollatorForSeq2Seq`]. It's more efficient to *dynamically pad* the sentences to the longest length in a batch during collation, instead of padding the whole dataset to the maximum length.
+
+## Evaluate
+
+Including a metric during training is often helpful for evaluating your model's performance. You can quickly load a evaluation method with the 🤗 Evaluate library. For this task, load the ROUGE metric (see the 🤗 Evaluate quick tour to learn more about how to load and compute a metric):
+
+Then create a function that passes your predictions and labels to [`~evaluate.EvaluationModule.compute`] to calculate the ROUGE metric:
+
+Your `compute_metrics` function is ready to go now, and you'll return to it when you setup your training.
+
+## Train
+
+If you aren't familiar with finetuning a model with the [`Trainer`], take a look at the basic tutorial here!
+
+You're ready to start training your model now! Load T5 with [`AutoModelForSeq2SeqLM`]:
+
+At this point, only three steps remain:
+
+1. Define your training hyperparameters in [`Seq2SeqTrainingArguments`]. The only required parameter is `output_dir` which specifies where to save your model. You'll push this model to the Hub by setting `push_to_hub=True` (you need to be signed in to Hugging Face to upload your model). At the end of each epoch, the [`Trainer`] will evaluate the ROUGE metric and save the training checkpoint.
+2. Pass the training arguments to [`Seq2SeqTrainer`] along with the model, dataset, tokenizer, data collator, and `compute_metrics` function.
+3. Call [`~Trainer.train`] to finetune your model.
+
+Once training is completed, share your model to the Hub with the [`~transformers.Trainer.push_to_hub`] method so everyone can use your model:
+
+For a more in-depth example of how to finetune a model for summarization, take a look at the corresponding
+PyTorch notebook.
+
+## Inference
+
+Great, now that you've finetuned a model, you can use it for inference!
+
+Come up with some text you'd like to summarize. For T5, you need to prefix your input depending on the task you're working on. For summarization you should prefix your input as shown below:
+
+Tokenize the text and return the `input_ids` as PyTorch tensors:
+
+Use the [`~generation.GenerationMixin.generate`] method to create the summarization. For more details about the different text generation strategies and parameters for controlling generation, check out the Text Generation API.
+
+Decode the generated token ids back into text:

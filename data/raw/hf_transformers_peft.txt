@@ -1,0 +1,89 @@
+Transformers: Parameter-efficient fine-tuning
+# Parameter-efficient fine-tuning
+
+Parameter-efficient fine-tuning (PEFT) methods only fine-tune a small number of extra model parameters (adapters) on top of a pretrained model. Because only adapter parameters are updated, the optimizer tracks far fewer gradients and states, reducing memory usage significantly. Adapters are lightweight, making them convenient to share, store, and load.
+
+Transformers integrates directly with the PEFT library through [`~integrations.PeftAdapterMixin`], added to all [`PreTrainedModel`] classes. You can load, add, train, switch, and delete adapters without wrapping your model in a separate [`~peft.PeftModel`]. All non-prompt-learning PEFT methods are supported (LoRA, IA3, AdaLoRA). Prompt-based methods like prompt tuning and prefix tuning require using the PEFT library directly.
+
+Install PEFT to get started. The integration requires `peft >= 0.20.0`.
+
+## Add an adapter
+
+Create a PEFT config, like [`~peft.LoraConfig`] for example, and attach it to a model with [`~integrations.PeftAdapterMixin.add_adapter`].
+
+### Fully fine-tuning specific layers
+
+To train additional modules alongside an adapter (for example, the language model head), specify them in `modules_to_save`. `modules_to_save` specifies layers that are fully fine-tuned alongside the adapter, so *all* of their parameters are updated. This is useful when certain layers need updates, for example the language model head (`lm_head`), when adapting a causal LM for sequence classification.
+
+### Choosing which layers to adapt
+
+For common architectures (Llama, Gemma, Qwen, etc.), PEFT has predefined default targets (like `q_proj` and `v_proj`), so you don't need to specify `target_modules`. If you want to target different layers, or the model doesn't have predefined targets, pass `target_modules` explicitly as a list of module names or a regex pattern.
+
+## Training
+
+Pass the model with an attached adapter to [`Trainer`] and call [`~Trainer.train`]. [`Trainer`] only updates the adapter parameters (those with `requires_grad=True`) because the base model is frozen.
+
+During training, [`Trainer`] checkpoints contain only the adapter weights (`adapter_model.safetensors`) and configuration (`adapter_config.json`), keeping checkpoints small. The base model isn't included.
+
+After training, save the final adapter with [`~PreTrainedModel.save_pretrained`].
+
+### Resuming from a checkpoint
+
+[`Trainer`] automatically detects adapter checkpoints when resuming. [`Trainer`] scans the checkpoint directory for subdirectories containing adapter weights and reloads each adapter with the correct trainable state.
+
+### Distributed training
+
+PEFT adapters work with distributed training out of the box.
+
+For ZeRO-3, [`Trainer`] passes `exclude_frozen_parameters=True` when saving checkpoints with a PEFT model. Frozen base model weights are skipped. Only the trainable adapter parameters are saved, reducing checkpoint size and save time.
+
+For FSDP, [`Trainer`] updates the FSDP auto-wrap policy to correctly handle LoRA layers. For QLoRA (quantized base model + LoRA), [`Trainer`] also adjusts the mixed precision policy to match the quantization storage dtype.
+
+You can load PEFT adapters onto a tensor parallel base model and let PEFT handle sharding the adapter weights. Loading an adapter requires `peft >= 0.21.1`. See Tensor parallelism for training with TP.
+
+## Loading an adapter
+
+To load an adapter, the Hub repository or local directory must contain an `adapter_config.json` file and the adapter weights.
+
+[`~PreTrainedModel.from_pretrained`] automatically detects adapters. When it finds an `adapter_config.json`, it reads the `base_model_name_or_path` field to load the correct base model, then loads the adapter on top.
+
+To load an adapter onto an existing model, use [`~integrations.PeftAdapterMixin.load_adapter`].
+
+For large models, load a quantized version in 8-bit or 4-bit precision with bitsandbytes to save memory. Add `device_map="auto"` to distribute the model across available hardware.
+
+## Managing multiple adapters
+
+A model can hold multiple adapters at once. Add adapters with unique names, and switch between them as needed.
+
+Use [`~integrations.PeftAdapterMixin.set_adapter`] to activate a specific adapter. The other adapters are disabled but remain in memory.
+
+[`~integrations.PeftAdapterMixin.enable_adapters`] enables all attached adapters, and [`~integrations.PeftAdapterMixin.disable_adapters`] disables all of them.
+
+Use [`~integrations.PeftAdapterMixin.active_adapters`] to see which adapters are currently active.
+
+Remove adapters you no longer need with [`~integrations.PeftAdapterMixin.delete_adapter`] to free memory.
+
+## Hotswapping adapters
+
+Loading a new adapter each time you serve a request allocates new memory. If the model is compiled with `torch.compile`, each new adapter triggers recompilation. Hotswapping replaces adapter weights in-place, avoiding both issues. Only LoRA adapters are supported.
+
+Pass `hotswap=True` when loading a LoRA adapter to swap its weights into an existing adapter slot. Set `adapter_name` to the name of the adapter to replace (`"default"` is the default adapter name).
+
+### torch.compile
+
+For compiled models, call [`~integrations.peft.PeftAdapterMixin.enable_peft_hotswap`] *before* loading the first adapter and before compiling.
+
+The `target_rank` argument sets the maximum rank among all LoRA adapters you'll load. If you have adapters with rank 8 and rank 16, pass `target_rank=16`. The default is 128.
+
+After calling `enable_peft_hotswap`, all subsequent `load_adapter` calls hotswap by default. Pass `hotswap=False` explicitly to disable hotswapping.
+
+Recompilation may still occur if the hotswapped adapter targets more layers than the initial adapter. Load the adapter that targets the most layers first to avoid recompilation.
+
+> [!TIP]
+> Wrap your code in `with torch._dynamo.config.patch(error_on_recompile=True)` to detect unexpected recompilation. If you detect recompilation despite following the steps above, open an issue with PEFT with a reproducible example.
+
+## Next steps
+
+- The PEFT documentation covers the full range of PEFT methods and options.
+- The PEFT hotswapping reference details limitations and edge cases.
+- A blog post benchmarks how `torch.compile` with hotswapping improves runtime.

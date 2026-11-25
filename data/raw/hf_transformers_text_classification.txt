@@ -1,0 +1,83 @@
+Transformers: Text classification
+# Text classification
+
+[[open-in-colab]]
+
+Text classification is a common NLP task that assigns a label or class to text. Some of the largest companies run text classification in production for a wide range of practical applications. One of the most popular forms of text classification is sentiment analysis, which assigns a label like 🙂 positive, 🙁 negative, or 😐 neutral to a sequence of text.
+
+This guide will show you how to:
+
+1. Finetune DistilBERT on the IMDb dataset to determine whether a movie review is positive or negative.
+2. Use your finetuned model for inference.
+
+To see all architectures and checkpoints compatible with this task, we recommend checking the task-page.
+
+Before you begin, make sure you have all the necessary libraries installed:
+
+We encourage you to login to your Hugging Face account so you can upload and share your model with the community. When prompted, enter your token to login:
+
+## Load IMDb dataset
+
+Start by loading the IMDb dataset from the 🤗 Datasets library:
+
+Then take a look at an example:
+
+There are two fields in this dataset:
+
+- `text`: the movie review text.
+- `label`: a value that is either `0` for a negative review or `1` for a positive review.
+
+## Preprocess
+
+The next step is to load a DistilBERT tokenizer to preprocess the `text` field:
+
+Create a preprocessing function to tokenize `text` and truncate sequences to be no longer than DistilBERT's maximum input length:
+
+To apply the preprocessing function over the entire dataset, use 🤗 Datasets [`~datasets.Dataset.map`] function. You can speed up `map` by setting `batched=True` to process multiple elements of the dataset at once:
+
+Now create a batch of examples using [`DataCollatorWithPadding`]. It's more efficient to *dynamically pad* the sentences to the longest length in a batch during collation, instead of padding the whole dataset to the maximum length.
+
+## Evaluate
+
+Including a metric during training is often helpful for evaluating your model's performance. You can quickly load a evaluation method with the 🤗 Evaluate library. For this task, load the accuracy metric (see the 🤗 Evaluate quick tour to learn more about how to load and compute a metric):
+
+Then create a function that passes your predictions and labels to [`~evaluate.EvaluationModule.compute`] to calculate the accuracy:
+
+Your `compute_metrics` function is ready to go now, and you'll return to it when you setup your training.
+
+## Train
+
+Before you start training your model, create a map of the expected ids to their labels with `id2label` and `label2id`:
+
+If you aren't familiar with finetuning a model with the [`Trainer`], take a look at the basic tutorial here!
+
+You're ready to start training your model now! Load DistilBERT with [`AutoModelForSequenceClassification`] along with the number of expected labels, and the label mappings:
+
+At this point, only three steps remain:
+
+1. Define your training hyperparameters in [`TrainingArguments`]. The only required parameter is `output_dir` which specifies where to save your model. You'll push this model to the Hub by setting `push_to_hub=True` (you need to be signed in to Hugging Face to upload your model). At the end of each epoch, the [`Trainer`] will evaluate the accuracy and save the training checkpoint.
+2. Pass the training arguments to [`Trainer`] along with the model, dataset, tokenizer, data collator, and `compute_metrics` function.
+3. Call [`~Trainer.train`] to finetune your model.
+
+[`Trainer`] applies dynamic padding by default when you pass `tokenizer` to it. In this case, you don't need to specify a data collator explicitly.
+
+Once training is completed, share your model to the Hub with the [`~transformers.Trainer.push_to_hub`] method so everyone can use your model:
+
+For a more in-depth example of how to finetune a model for text classification, take a look at the corresponding
+PyTorch notebook.
+
+## Inference
+
+Great, now that you've finetuned a model, you can use it for inference!
+
+Grab some text you'd like to run inference on:
+
+The simplest way to try out your finetuned model for inference is to use it in a [`pipeline`]. Instantiate a `pipeline` for sentiment analysis with your model, and pass your text to it:
+
+You can also manually replicate the results of the `pipeline` if you'd like:
+
+Tokenize the text and return PyTorch tensors:
+
+Pass your inputs to the model and return the `logits`:
+
+Get the class with the highest probability, and use the model's `id2label` mapping to convert it to a text label:

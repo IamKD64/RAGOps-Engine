@@ -1,0 +1,41 @@
+{"q": "How does a client agent discover what a remote agent can do before sending it work?", "source": "A2A Protocol: Agent Discovery in A2A", "tier": "easy"}
+{"q": "How do A2A and MCP differ in the layers of an agentic system they address?", "source": "A2A Protocol: A2A and MCP: Detailed Comparison", "tier": "easy"}
+{"q": "How are TLS, authentication and authorization handled when running agent-to-agent communication in an enterprise?", "source": "A2A Protocol: Enterprise Implementation of A2A", "tier": "easy"}
+{"q": "Who are the user, client agent and remote agent actors in agent interactions?", "source": "A2A Protocol: Core Concepts and Components in A2A", "tier": "easy"}
+{"q": "Can a completed task be changed, and how are follow-up refinements to its result handled?", "source": "A2A Protocol: Life of a Task", "tier": "easy"}
+{"q": "How do server-sent events and push notifications support long-running agent tasks?", "source": "A2A Protocol: Streaming and Asynchronous Operations for Long-Running Tasks", "tier": "easy"}
+{"q": "Why was an open protocol created for agents built by different vendors to collaborate?", "source": "A2A Protocol: What is A2A?", "tier": "easy"}
+{"q": "How can several trained LoRA adapters be merged into one model?", "source": "PEFT: Model merging", "tier": "easy"}
+{"q": "How do I load a base model in 4-bit and attach LoRA adapters with PEFT?", "source": "PEFT: Quantization", "tier": "easy"}
+{"q": "How do I wrap a base model with a LoraConfig and get a trainable PEFT model?", "source": "PEFT: Quicktour", "tier": "easy"}
+{"q": "My fine-tuned adapter training loss does not improve; what should I check?", "source": "PEFT: Troubleshooting", "tier": "easy"}
+{"q": "What is QLoRA and which hardware does the bitsandbytes library support?", "source": "Transformers: Bitsandbytes", "tier": "easy"}
+{"q": "How do chat templates turn a list of role/content messages into model input?", "source": "Transformers: Chat templates", "tier": "easy"}
+{"q": "What is the difference between greedy search, beam search and multinomial sampling?", "source": "Transformers: Generation strategies", "tier": "easy"}
+{"q": "How can reusing key-value states and cache offloading speed up or reduce memory of generation?", "source": "Transformers: Cache strategies", "tier": "easy"}
+{"q": "What common mistakes like wrong padding side give bad text generation output?", "source": "Transformers: Text generation", "tier": "easy"}
+{"q": "Which tensors and operations take up GPU memory when training a model?", "source": "Transformers: GPU memory usage", "tier": "easy"}
+{"q": "How do I add, load and hotswap adapters on a Transformers model?", "source": "Transformers: Parameter-efficient fine-tuning", "tier": "easy"}
+{"q": "How is perplexity computed with a sliding window for models with a fixed context length?", "source": "Transformers: Perplexity of fixed-length models", "tier": "easy"}
+{"q": "How do I run the pipeline API in batches on a large dataset?", "source": "Transformers: Pipeline", "tier": "easy"}
+{"q": "How do I choose between quantization methods and load a pre-quantized checkpoint?", "source": "Transformers: Overview", "tier": "easy"}
+{"q": "How do I fine-tune an extractive question answering model on SQuAD?", "source": "Transformers: Question answering", "tier": "easy"}
+{"q": "How do I fine-tune a model to summarize bills using the BillSum dataset?", "source": "Transformers: Summarization", "tier": "easy"}
+{"q": "How do I train a causal language model on the ELI5 dataset?", "source": "Transformers: Causal language modeling", "tier": "easy"}
+{"q": "How do I fine-tune a sentiment classifier on IMDb movie reviews?", "source": "Transformers: Text classification", "tier": "easy"}
+{"q": "What is the difference between byte-pair encoding, WordPiece, Unigram and SentencePiece tokenizers?", "source": "Transformers: Tokenization algorithms", "tier": "easy"}
+{"q": "How do I set up TrainingArguments and Trainer to fine-tune a pretrained model?", "source": "Transformers: Fine-tuning", "tier": "easy"}
+{"q": "What do the glossary entries say about attention masks and input IDs?", "source": "Transformers: Glossary", "tier": "easy"}
+{"q": "How do I load a pretrained model and run inference in the quickstart?", "source": "Transformers: Quickstart", "tier": "easy"}
+{"q": "My GPU runs out of memory while training a big model, which kinds of things are eating the VRAM?", "source": "Transformers: GPU memory usage", "tier": "hard"}
+{"q": "Which technique lets me squeeze a large language model onto a small graphics card by storing weights with fewer bits?", "source": "Transformers: Overview", "tier": "hard"}
+{"q": "Two AI programs written by different companies need to talk to each other; is there a standard way?", "source": "A2A Protocol: What is A2A?", "tier": "hard"}
+{"q": "How does one AI helper find out another helper's skills by fetching a small JSON profile?", "source": "A2A Protocol: Agent Discovery in A2A", "tier": "hard"}
+{"q": "Why does my chatbot produce garbage when I batch prompts of different lengths?", "source": "Transformers: Text generation", "tier": "hard"}
+{"q": "How can I add a tiny number of trainable weights to a frozen big network instead of retraining everything?", "source": "PEFT: Quicktour", "tier": "hard"}
+{"q": "Is a standard for connecting models to external tools and data complementary to the protocol for agent teamwork?", "source": "A2A Protocol: A2A and MCP: Detailed Comparison", "tier": "hard"}
+{"q": "How are words split into subword pieces so unseen words can still be represented?", "source": "Transformers: Tokenization algorithms", "tier": "hard"}
+{"q": "What number tells me how surprised a language model is by a piece of text?", "source": "Transformers: Perplexity of fixed-length models", "tier": "hard"}
+{"q": "How can I stop recomputing earlier attention results at every new generated word?", "source": "Transformers: Cache strategies", "tier": "hard"}
+{"q": "Can I combine several fine-tuned add-on weight sets by averaging them?", "source": "PEFT: Model merging", "tier": "hard"}
+{"q": "How should the roles system, user and assistant be formatted before feeding a conversation to a model?", "source": "Transformers: Chat templates", "tier": "hard"}
