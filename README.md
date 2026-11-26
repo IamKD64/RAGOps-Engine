@@ -1,47 +1,40 @@
 # RAGOps-Engine
+### Local-First Retrieval-Augmented Generation with Hybrid Search, Cross-Encoder Reranking & Quantitative Evaluation
 
+![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![Ollama](https://img.shields.io/badge/LLM-Ollama-black?logo=ollama&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker&logoColor=white)
+![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?logo=githubactions&logoColor=white)
 
+**RAGOps-Engine** is an end-to-end, local-first Retrieval-Augmented Generation (RAG) system designed to answer questions over technical documentation with grounded responses and numbered source citations.
 
+The system implements four retrieval strategies — dense vector search, BM25 keyword search, hybrid retrieval using Reciprocal Rank Fusion (RRF), and hybrid retrieval with cross-encoder reranking.
 
+Unlike basic RAG implementations, RAGOps-Engine includes a quantitative evaluation framework to measure and compare retrieval performance using Recall@K and Mean Reciprocal Rank (MRR).
 
-
-A **local-first Retrieval-Augmented Generation (RAG) system** that answers questions over a technical document corpus and cites its sources. It combines dense vector search, BM25 keyword search, Reciprocal Rank Fusion (RRF), and cross-encoder reranking, then generates grounded answers with a locally hosted LLM through [Ollama](https://ollama.com).
-
-The project also includes an **evaluation harness** (Recall\@K, MRR, chunk-level metrics, and bootstrap confidence intervals) and a **CI quality gate**, allowing retrieval strategies to be compared using measurable results.
-
-> No hosted LLM API or API key is required. Everything runs locally on your machine.
-
-## Screenshots
-
-### Application Interface
-![RAGOps-Engine UI](docs/Home.png)
-
-### Generated Answer with Sources
-![Answer with citations](docs/Result.png)
-![Answer with citations](docs/Result_2.png)
-
-### Evaluation Results
-![Retrieval evaluation](docs/Evaluation.png)
-
-### Evaluation Results
-![Retrieval strategy](docs/Retrieval_Strategy.png)
+The complete pipeline runs locally using **Ollama**, without requiring hosted LLM APIs or API keys.
 
 ---
 
 ## Table of Contents
 
-- [Features](#features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Corpus](#corpus)
+- [Project Overview](#project-overview)
+- [Screenshots](#screenshots)
+- [Key Features](#key-features)
+- [System Architecture](#system-architecture)
+- [Retrieval Pipeline](#retrieval-pipeline)
+- [Technology Stack](#technology-stack)
+- [Document Corpus & Ingestion](#document-corpus--ingestion)
 - [Getting Started](#getting-started)
-- [Docker](#docker)
-- [API Reference](#api-reference)
-- [Evaluation](#evaluation)
-- [Testing and CI](#testing-and-ci)
+- [Docker Deployment](#docker-deployment)
+- [API Documentation](#api-documentation)
+- [Evaluation Framework](#evaluation-framework)
+- [Benchmark Results](#benchmark-results)
 - [Project Structure](#project-structure)
-- [Configuration](#configuration)
-- [Troubleshooting](#troubleshooting)
+- [Testing & Continuous Integration](#testing--continuous-integration)
+- [Engineering Decisions](#engineering-decisions)
 - [Limitations](#limitations)
 - [Roadmap](#roadmap)
 - [Acknowledgements](#acknowledgements)
@@ -49,238 +42,445 @@ The project also includes an **evaluation harness** (Recall\@K, MRR, chunk-level
 
 ---
 
-## Features
+## Project Overview
 
-- **Four retrieval modes:** `vector`, `bm25`, `hybrid`, and `hybrid_rerank`.
-- **Reciprocal Rank Fusion:** Combines dense and keyword rankings without requiring score normalization.
-- **Cross-encoder reranking:** Rescores the fused candidate pool to improve retrieval precision.
-- **Grounded answers:** The model is instructed to use only the numbered context passages, cite them as `[1]`, `[2]`, and respond with *"I don't know based on the provided documents."* when the answer is unavailable.
-- **Per-request latency breakdown:** Separates retrieval latency from generation latency.
-- **Evaluation harness:** Includes document-level and chunk-level metrics, 95% bootstrap confidence intervals, an optional recall gate for CI, and an optional LLM faithfulness check.
-- **React chat interface:** Includes a retrieval-mode selector, adjustable top-K, expandable source passages, latency display, and API status indicator.
-- **Engineering practices:** Pytest unit tests, Docker support, and a four-job GitHub Actions pipeline.
+Retrieval-Augmented Generation systems can produce unreliable answers when retrieval quality is poor or generated responses are not sufficiently grounded in source material.
 
-## Architecture
+RAGOps-Engine addresses this problem by combining multiple retrieval techniques, ranking optimization, controlled generation, and measurable evaluation.
+
+### Design Goals
+
+1. **Retrieval Quality:** Compare semantic, lexical, and hybrid retrieval approaches.
+2. **Ranking Optimization:** Improve candidate relevance through Reciprocal Rank Fusion and cross-encoder reranking.
+3. **Grounded Generation:** Generate responses using retrieved document passages with numbered citations.
+4. **Local-First Architecture:** Run inference locally using Ollama.
+5. **Measurable Performance:** Evaluate retrieval strategies using a fixed golden dataset.
+6. **Engineering Reliability:** Include automated tests, containerization, and GitHub Actions CI.
+
+---
+
+## Screenshots
+
+### 1. Application Interface
+
+The React-based interface allows users to interact with the RAG system and configure retrieval strategies.
+
+![RAGOps-Engine Application](docs/Home.png)
+
+### 2. Generated Answers with Source Citations
+
+Answers are generated from retrieved context and accompanied by numbered citations and supporting source passages.
+
+![Generated Answer with Sources](docs/Result.png)
+
+![Generated Answer - Additional Example](docs/Result_2.png)
+
+### 3. Retrieval Evaluation Dashboard
+
+Evaluation results provide a quantitative comparison of the retrieval strategies using Recall@5 and MRR.
+
+![Retrieval Evaluation Results](docs/Evaluation.png)
+
+### 4. Retrieval Strategy Comparison
+
+Comparison of the different retrieval approaches, including the impact of cross-encoder reranking.
+
+![Retrieval Strategy Comparison](docs/Retrieval_Strategy.png)
+
+---
+
+## Key Features
+
+### Retrieval & Ranking
+
+- Four selectable retrieval modes:
+  - Vector Search
+  - BM25
+  - Hybrid Search
+  - Hybrid Search + Reranking
+- Dense semantic retrieval using sentence embeddings.
+- Keyword retrieval using BM25Okapi.
+- Reciprocal Rank Fusion for combining independent rankings.
+- Cross-encoder reranking for improved relevance.
+
+### Grounded Generation
+
+- Local LLM inference through Ollama.
+- Context-constrained answer generation.
+- Numbered source citations such as `[1]` and `[2]`.
+- Instructions to respond with "I don't know" when the retrieved context does not support an answer.
+- Retrieved source passages returned alongside generated answers.
+
+### Evaluation & Observability
+
+- Recall@K evaluation.
+- Mean Reciprocal Rank (MRR).
+- Easy and hard evaluation tiers.
+- Configurable retrieval modes and Top-K.
+- Optional LLM-as-a-Judge faithfulness evaluation.
+- Separate retrieval and generation latency measurements.
+- Optional minimum Recall@K evaluation threshold.
+
+### Application & Engineering
+
+- FastAPI backend.
+- React 19 and Vite frontend.
+- Interactive retrieval-mode selector.
+- Adjustable Top-K.
+- Expandable source passages.
+- API status indicator.
+- Persistent ChromaDB storage.
+- Docker and Docker Compose support.
+- Pytest unit tests.
+- GitHub Actions CI pipeline.
+
+---
+
+## System Architecture
 
 ```mermaid
-flowchart LR
-    Q[User question] --> API[FastAPI /ask]
-    API --> V[Vector search<br/>ChromaDB + bge-small]
-    API --> B[BM25 keyword search<br/>rank-bm25]
-    V -->|top 20| F[Reciprocal Rank Fusion]
-    B -->|top 20| F
-    F --> R[Cross-encoder reranker<br/>ms-marco-MiniLM]
-    R -->|top K| P[Prompt builder<br/>numbered passages]
-    P --> L[Ollama LLM<br/>llama3.2:3b]
-    L --> A[Answer + citations<br/>+ sources + latency]
+flowchart TD
+    A["User Question"] --> B["React Frontend"]
+    B --> C["FastAPI /ask"]
+
+    C --> D["Retrieval Engine"]
+
+    D --> E["Dense Vector Search"]
+    D --> F["BM25 Keyword Search"]
+
+    E --> G["Reciprocal Rank Fusion"]
+    F --> G
+
+    G --> H["Cross-Encoder Reranking"]
+    H --> I["Top-K Context Selection"]
+
+    I --> J["Prompt Construction"]
+    J --> K["Ollama Local LLM"]
+
+    K --> L["Grounded Answer + Citations"]
+    L --> M["Source Passages + Latency Metrics"]
+    M --> B
 ```
 
-In the default `hybrid_rerank` mode, the vector and BM25 retrievers each return candidates, RRF fuses their rankings, and the cross-encoder rescores the fused candidate pool. The top K passages (default 5) are then included in the generation prompt.
+### Core Components
 
-The other modes skip some of these stages:
+| Component | Responsibility |
+|---|---|
+| FastAPI | Handles API requests and responses |
+| ChromaDB | Persistent vector storage and similarity search |
+| BGE Embeddings | Converts document chunks and queries into embeddings |
+| BM25 | Performs keyword-based retrieval |
+| RRF | Combines rankings from multiple retrievers |
+| Cross-Encoder | Rescores retrieved candidates |
+| Ollama | Runs the local generation model |
+| React | Provides the interactive user interface |
+| Evaluation Harness | Measures retrieval performance |
 
-| Mode            | Pipeline                                                |
-| --------------- | ------------------------------------------------------- |
-| `vector`        | Dense embedding search only                             |
-| `bm25`          | BM25 keyword search only                                |
-| `hybrid`        | Vector + BM25 fused with RRF                            |
-| `hybrid_rerank` | Hybrid candidates reranked by a cross-encoder (default) |
+---
 
-### How the Pieces Work
+## Retrieval Pipeline
 
-- **Chunking** (`app/chunking.py`): Word-window chunks of 180 words with a 40-word overlap. Trailing fragments under 20 words are dropped because the overlap already covers them.
-- **Embeddings:** `BAAI/bge-small-en-v1.5` with normalized vectors and cosine similarity. Queries are prefixed with the BGE retrieval instruction; documents are not.
-- **Index:** ChromaDB persisted in `data/index/`, plus `chunks.json`, which feeds BM25 and chunk lookup.
-- **Lazy loading:** The retriever is created on the first `/ask` call and the reranker on the first reranked call. Consequently, the first request may be slower.
-- **Generation** (`app/llm.py`): Uses the Ollama `/api/chat` endpoint with temperature `0.1` and non-streaming responses.
+The default retrieval strategy is `hybrid_rerank`.
 
-## Tech Stack
+### Step 1: Dense Vector Retrieval
 
-| Layer          | Technology                                       |
-| -------------- | ------------------------------------------------ |
-| API            | FastAPI, Uvicorn                                 |
-| Vector store   | ChromaDB (persistent, cosine)                    |
-| Embeddings     | `BAAI/bge-small-en-v1.5` (sentence-transformers) |
-| Keyword search | `rank-bm25` (BM25Okapi)                          |
-| Reranker       | `cross-encoder/ms-marco-MiniLM-L-6-v2`           |
-| LLM            | `llama3.2:3b` via Ollama                         |
-| Frontend       | React 19, Vite                                   |
-| Tooling        | Pytest, Docker, GitHub Actions, oxlint           |
+Documents are converted into embeddings using:
 
-## Corpus
+`BAAI/bge-small-en-v1.5`
 
-The corpus contains **29 documents** from openly licensed documentation, fetched and cleaned by `scripts/build_corpus.py`.
+Query embeddings are compared against the indexed document chunks using ChromaDB similarity search.
 
-| Source                          | Documents |
-| ------------------------------- | --------: |
-| Hugging Face Transformers docs  |        18 |
-| Hugging Face PEFT docs          |         4 |
-| A2A (Agent2Agent) protocol docs |         7 |
-| **Total**                       |    **29** |
+This enables semantic retrieval beyond exact keyword matching.
 
-Cleaning removes front matter, HTML comments, images, code blocks, and documentation-framework tags, and flattens links. The resulting corpus is split into approximately **260 chunks**.
+### Step 2: BM25 Keyword Retrieval
 
-The cleaned corpus is committed in `data/raw/`, so the index can be rebuilt locally without fetching the documents again.
+BM25Okapi retrieves documents based on lexical relevance.
 
-Each file in `data/raw/` follows one convention: **the first line is the document title, and the rest is the body.** Titles become the `source` shown in citations and used by the evaluator.
+This complements semantic search by identifying important keywords and technical terminology.
 
-> Code blocks are stripped to keep the corpus prose-only, so questions about exact code syntax are outside the current scope.
+### Step 3: Reciprocal Rank Fusion
+
+The two independent rankings are combined using Reciprocal Rank Fusion.
+
+The RRF score is calculated as:
+
+\[
+RRF(d)=\sum_{r \in R}\frac{1}{k_0+rank_r(d)}
+\]
+
+Where:
+
+- \(d\) represents a document.
+- \(R\) represents the set of retrieval rankings.
+- \(rank_r(d)\) is the document's rank in retriever \(r\).
+- \(k_0\) is the RRF smoothing constant.
+
+### Step 4: Cross-Encoder Reranking
+
+The fused candidate pool is rescored using:
+
+`cross-encoder/ms-marco-MiniLM-L-6-v2`
+
+Unlike bi-encoder retrieval, the cross-encoder evaluates query-passage relevance jointly.
+
+This helps improve the ordering of retrieved candidates.
+
+### Step 5: Context Selection
+
+The highest-ranked passages are selected using the configurable Top-K parameter.
+
+Default configuration:
+
+| Parameter | Value |
+|---|---:|
+| Dense retrieval candidates | 20 |
+| BM25 retrieval candidates | 20 |
+| Final Top-K | 5 |
+
+### Step 6: Grounded Answer Generation
+
+The selected passages are supplied to the local LLM through a structured prompt.
+
+The model is instructed to:
+
+- Answer using the provided context.
+- Include numbered source citations.
+- Avoid unsupported claims.
+- Respond with "I don't know" when the context does not contain the answer.
+
+The API returns the generated answer, source passages, and latency information.
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Programming Language | Python 3.11 |
+| Backend Framework | FastAPI |
+| ASGI Server | Uvicorn |
+| Vector Database | ChromaDB |
+| Embedding Model | BAAI/bge-small-en-v1.5 |
+| Keyword Retrieval | rank-bm25 |
+| Rank Fusion | Reciprocal Rank Fusion |
+| Reranking Model | cross-encoder/ms-marco-MiniLM-L-6-v2 |
+| Local LLM Runtime | Ollama |
+| Generation Model | Llama 3.2 3B |
+| Frontend | React 19 |
+| Frontend Build Tool | Vite |
+| Testing | Pytest |
+| Containerization | Docker |
+| CI/CD | GitHub Actions |
+
+---
+
+## Document Corpus & Ingestion
+
+The system uses a technical documentation corpus containing 29 documents from openly licensed documentation sources.
+
+| Source | Documents |
+|---|---:|
+| Hugging Face Transformers | 18 |
+| Hugging Face PEFT | 4 |
+| A2A Protocol | 7 |
+| **Total** | **29** |
+
+### Document Processing
+
+The ingestion pipeline:
+
+1. Downloads documentation using `scripts/build_corpus.py`.
+2. Removes front matter.
+3. Removes images and code blocks.
+4. Flattens document links.
+5. Splits documents into overlapping word-based chunks.
+6. Generates embeddings.
+7. Persists vectors in ChromaDB.
+
+### Chunking Configuration
+
+| Parameter | Default |
+|---|---:|
+| Total Documents | 29 |
+| Total Chunks | 260 |
+| Chunk Size | 180 words |
+| Chunk Overlap | 40 words |
+
+Chunking parameters are configurable through:
+
+- `CHUNK_WORDS`
+- `CHUNK_OVERLAP`
+
+**Corpus scope:** The current implementation removes code blocks during preprocessing. Consequently, questions requiring exact source-code syntax are outside the supported corpus scope.
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
 - Python 3.11
-- [Ollama](https://ollama.com/download) installed and running
-- Node.js 22+ (only required for the frontend)
-- Approximately 2 GB of free disk space for models and the index
+- Ollama installed and running
+- Node.js 22+ (frontend)
+- Git
+- Docker (optional)
 
-### 1. Clone and Install
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/IamKD64/RAGOps-Engine.git
-cd RAGOps-Engine
+git clone https://github.com/<your-username>/RAGOps-Engine.git
 
-python -m venv .venv
-pip install -r requirements.txt
+cd RAGOps-Engine
 ```
 
-Activate the virtual environment:
+### 2. Create a Python Virtual Environment
 
-**Windows PowerShell**
+**Windows PowerShell:**
 
 ```powershell
-.\.venv\Scripts\Activate.ps1
+python -m venv .venv
+
+.venv\Scripts\Activate.ps1
 ```
 
-**Linux / macOS**
+**Linux / macOS:**
 
 ```bash
+python -m venv .venv
+
 source .venv/bin/activate
 ```
 
-### 2. Configure
+Install dependencies:
 
-Create your local environment file:
+```bash
+pip install -r requirements.txt
+```
 
-**Windows PowerShell**
+### 3. Configure Environment Variables
+
+Copy the example environment file.
+
+**Windows PowerShell:**
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-**Linux / macOS**
+**Linux / macOS:**
 
 ```bash
 cp .env.example .env
 ```
 
-The defaults work out of the box. See [Configuration](#configuration) for the available variables.
+Configuration:
 
-### 3. Pull the LLM
+| Variable | Default | Purpose |
+|---|---|---|
+| `OLLAMA_URL` | `http://localhost:11434` | Ollama endpoint |
+| `LLM_MODEL` | `llama3.2:3b` | Generation model |
+| `EMBED_MODEL` | `BAAI/bge-small-en-v1.5` | Embedding model |
+| `RERANK_MODEL` | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Reranking model |
+| `CHUNK_WORDS` | `180` | Chunk size |
+| `CHUNK_OVERLAP` | `40` | Chunk overlap |
+
+### 4. Download the LLM
 
 ```bash
 ollama pull llama3.2:3b
 ```
 
-Make sure Ollama is running before starting the API.
+Ensure Ollama is running before launching the application.
 
-### 4. Build the Index
+### 5. Build the Document Index
+
+The cleaned documents are already available in `data/raw/`.
+
+Run:
 
 ```bash
 python -m app.ingest
 ```
 
-This command:
+This builds the persistent ChromaDB index.
 
-1. Chunks every document in `data/raw/`.
-2. Generates embeddings for the chunks.
-3. Writes the ChromaDB collection.
-4. Saves `data/index/chunks.json`.
-
-The embedding model downloads automatically on first use.
-
-To refresh or extend the corpus, edit `SOURCES` in `scripts/build_corpus.py` (raw GitHub Markdown URLs can be used), run:
+To refresh or extend the corpus:
 
 ```bash
 python scripts/build_corpus.py
+
 python -m app.ingest
 ```
 
-### 5. Run the API
+Update the `SOURCES` configuration in `scripts/build_corpus.py` before rebuilding if you want to add documentation sources.
+
+### 6. Start the Backend
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-The API will be available at:
+Backend URL:
 
-- API: [http://127.0.0.1:8000](http://127.0.0.1:8000)
-- Interactive API documentation: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+`http://127.0.0.1:8000`
 
-### 6. Run the Frontend (Optional)
+Interactive Swagger documentation:
+
+`http://127.0.0.1:8000/docs`
+
+Health endpoint:
+
+`http://127.0.0.1:8000/health`
+
+**Note:** The first request may take longer because embedding and reranking models are loaded lazily.
+
+### 7. Start the Frontend
 
 Open another terminal:
 
 ```bash
 cd frontend
+
 npm ci
+
 npm run dev
 ```
 
-Open the URL printed by Vite, usually:
+The Vite development server proxies `/api/*` requests to the backend.
 
-[http://localhost:5173](http://localhost:5173)
+Start the backend before launching the frontend.
 
-Vite proxies `/api/*` requests to `http://127.0.0.1:8000`, so **start the API before the frontend**.
+---
 
-The proxy exists only in the Vite development server. A production build of the frontend is not served by the API.
+## Docker Deployment
 
-### Quick Smoke Test
-
-Check the API health:
-
-```bash
-curl http://127.0.0.1:8000/health
-```
-
-Send a question:
-
-```bash
-curl -X POST http://127.0.0.1:8000/ask \
-  -H "Content-Type: application/json" \
-  -d '{"question": "What is greedy search in text generation?"}'
-```
-
-## Docker
-
-Start the API container:
+Build and start the application:
 
 ```bash
 docker compose up --build
 ```
 
-The Compose configuration:
+The Docker configuration expects Ollama to run on the host and be accessible through:
 
-- Runs the API on port 8000.
-- Mounts `./data` into the container.
-- Points `OLLAMA_URL` at `http://host.docker.internal:11434`.
+`host.docker.internal:11434`
 
-**Ollama must be running on the host machine.**
-
-Docker runs the backend only. Run the frontend separately using the commands in [Step 6](#6-run-the-frontend-optional).
-
-Build the index first (Step 4) so `data/index/` exists. Alternatively, run ingestion inside the container:
+Build the document index before starting the containers:
 
 ```bash
-docker compose run --rm api python -m app.ingest
+python -m app.ingest
 ```
 
-Embedding and reranker models download on first use. They are not cached between container rebuilds unless a volume is configured for the Hugging Face cache.
+The Docker configuration mounts `./data` for persistent index storage.
 
-## API Reference
+Embedding and reranking models are downloaded on first use.
 
-### `GET /health`
+---
+
+## API Documentation
+
+### Health Check
+
+**Endpoint:** `GET /health`
 
 Example response:
 
@@ -290,34 +490,47 @@ Example response:
 }
 ```
 
-This confirms that the server is running. It does not verify the index or the Ollama connection.
+### Ask a Question
 
-### `POST /ask`
+**Endpoint:** `POST /ask`
 
-| Field      | Type    | Default         | Notes                                          |
-| ---------- | ------- | --------------- | ---------------------------------------------- |
-| `question` | string  | Required        | Minimum 3 characters                           |
-| `mode`     | string  | `hybrid_rerank` | `vector`, `bm25`, `hybrid`, or `hybrid_rerank` |
-| `k`        | integer | `5`             | 1 to 10 passages                               |
+#### Request Parameters
 
-Example request:
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `question` | string | Required | User question, minimum 3 characters |
+| `mode` | string | `hybrid_rerank` | Retrieval strategy |
+| `k` | integer | `5` | Number of context passages (1–10) |
+
+Supported retrieval modes:
+
+- `vector`
+- `bm25`
+- `hybrid`
+- `hybrid_rerank`
+
+#### Example Request
 
 ```bash
 curl -X POST http://127.0.0.1:8000/ask \
   -H "Content-Type: application/json" \
-  -d '{"question": "How does a client agent discover what a remote agent can do?", "mode": "hybrid_rerank", "k": 5}'
+  -d '{
+    "question": "How does a client agent discover what a remote agent can do?",
+    "mode": "hybrid_rerank",
+    "k": 5
+  }'
 ```
 
-Example response:
+#### Example Response
 
 ```json
 {
-  "answer": "...grounded answer with citations like [1] and [2]...",
+  "answer": "A client agent can discover remote agent capabilities through the A2A discovery mechanism [1].",
   "sources": [
     {
       "source": "A2A Protocol: Agent Discovery in A2A",
       "chunk_id": "a2a_agent_discovery-3",
-      "text": "first 300 characters of the passage..."
+      "text": "First 300 characters of the retrieved passage..."
     }
   ],
   "latency_ms": {
@@ -327,240 +540,291 @@ Example response:
 }
 ```
 
-| Status | Meaning                                                   |
-| ------ | --------------------------------------------------------- |
-| `400`  | Invalid retrieval mode                                    |
-| `422`  | Validation error (question too short or `k` out of range) |
-| `503`  | Ollama backend unavailable                                |
+The response includes:
 
-## Evaluation
+- Generated answer.
+- Numbered source citations.
+- Retrieved source metadata and passage previews.
+- Retrieval latency.
+- Generation latency.
 
-Run the evaluation harness from the project root:
+#### Error Responses
+
+| Status Code | Description |
+|---|---|
+| 400 | Invalid retrieval mode or request |
+| 503 | Ollama backend unavailable |
+
+---
+
+## Evaluation Framework
+
+RAGOps-Engine includes a dedicated evaluation harness for comparing retrieval strategies against a fixed golden dataset.
+
+The goal is to measure retrieval performance independently of subjective answer quality.
+
+### Evaluation Dataset
+
+The dataset is located at:
+
+`eval/golden.jsonl`
+
+It contains 41 questions:
+
+| Difficulty | Questions |
+|---|---:|
+| Easy | 29 |
+| Hard | 12 |
+| **Total** | **41** |
+
+A retrieval counts as a hit when the expected source document appears within the top-K retrieved results.
+
+### Evaluation Metrics
+
+**1. Recall@K**
+
+Measures whether the expected source document is retrieved within the top-K results.
+
+\[
+Recall@K=\frac{\text{Queries with relevant document in top K}}{\text{Total queries}}
+\]
+
+**2. Mean Reciprocal Rank (MRR)**
+
+Measures how highly the first relevant document appears in the ranking.
+
+\[
+MRR=\frac{1}{N}\sum_{i=1}^{N}\frac{1}{rank_i}
+\]
+
+Where \(rank_i\) is the rank of the first relevant document for query \(i\).
+
+### Running Evaluations
+
+Run all retrieval strategies:
 
 ```bash
 python -m eval.run_eval
 ```
 
-Useful options:
+Run with a Recall@5 threshold:
 
 ```bash
-# Compare all retrieval modes and tiers
-python -m eval.run_eval
+python -m eval.run_eval --k 5 --min-recall 0.9
+```
 
-# Apply a minimum Recall@5 quality gate
-python -m eval.run_eval --k 5 --min-recall 0.95
+The evaluation exits with status code 1 if the `hybrid_rerank` Recall@5 score falls below the configured threshold.
 
-# Use more bootstrap samples
-python -m eval.run_eval --bootstrap-samples 5000
+Run optional LLM-as-a-Judge evaluation:
 
-# Run the optional LLM faithfulness check (requires Ollama)
+```bash
 python -m eval.run_eval --judge 10
 ```
 
-Results are written to `eval/results.json`.
+The faithfulness check requires Ollama to be running.
 
-### Golden Set
+Results are written to:
 
-`eval/golden.jsonl` contains **41 questions**:
+`eval/results.json`
 
-- 29 easy questions
-- 12 hard questions
+---
 
-Each record includes a question, expected source, difficulty tier, and relevant chunk IDs.
+## Benchmark Results
 
-Example:
+The following results were obtained using the current 41-question golden dataset.
 
-```json
-{
-  "q": "...",
-  "source": "A2A Protocol: Agent Discovery in A2A",
-  "tier": "easy",
-  "relevant_chunk_ids": [
-    "a2a_agent_discovery-0",
-    "a2a_agent_discovery-1"
-  ]
-}
-```
+### Overall Performance
 
-### Two Levels of Measurement
+**Recall@5 and MRR — All 41 Questions**
 
-| Level        | A hit means                                                          | Metrics                                      |
-| ------------ | -------------------------------------------------------------------- | -------------------------------------------- |
-| **Document** | The expected source document appears in the top K                    | Recall\@K, MRR                               |
-| **Chunk**    | At least one hand-labelled answer-bearing chunk appears in the top K | Hit recall\@K, chunk coverage recall\@K, MRR |
+| Retrieval Strategy | Recall@5 | MRR |
+|---|---:|---:|
+| Vector Search | 0.951 | 0.850 |
+| BM25 | 0.902 | 0.764 |
+| Hybrid | 0.951 | 0.837 |
+| **Hybrid + Reranking** | **1.000** | **0.888** |
 
-All 41 questions have chunk labels. The evaluation results include 95% bootstrap confidence intervals for the reported metrics.
+### Hard Query Performance
 
-### Results (K = 5)
+**Recall@5 and MRR — 12 Hard Questions**
 
-**Document level — all 41 questions**
+| Retrieval Strategy | Recall@5 | MRR |
+|---|---:|---:|
+| Vector Search | 0.917 | 0.694 |
+| BM25 | 0.750 | 0.569 |
+| Hybrid | 0.833 | 0.632 |
+| **Hybrid + Reranking** | **1.000** | **0.757** |
 
-| Mode              | Recall\@5 |          95% CI |       MRR |
-| ----------------- | --------: | --------------: | --------: |
-| vector            |     0.951 |     0.878–1.000 |     0.850 |
-| bm25              |     0.902 |     0.805–0.976 |     0.764 |
-| hybrid            |     0.951 |     0.878–1.000 |     0.837 |
-| **hybrid_rerank** | **1.000** | **1.000–1.000** | **0.888** |
+### Key Observations
 
-**Document level — hard tier (12 questions)**
+**1. Reranking provides the strongest retrieval performance.**
 
-| Mode              | Recall\@5 |       MRR |
-| ----------------- | --------: | --------: |
-| vector            |     0.917 |     0.694 |
-| bm25              |     0.750 |     0.569 |
-| hybrid            |     0.833 |     0.632 |
-| **hybrid_rerank** | **1.000** | **0.757** |
+Hybrid retrieval followed by cross-encoder reranking achieves 1.000 Recall@5 across the complete evaluation dataset.
 
-**Chunk level — all 41 questions**
+**2. Reranking improves difficult-query retrieval.**
 
-| Mode              | Hit recall\@5 | Coverage recall\@5 |       MRR |
-| ----------------- | ------------: | -----------------: | --------: |
-| vector            |         0.854 |              0.772 |     0.801 |
-| bm25              |         0.927 |              0.738 |     0.738 |
-| hybrid            |         0.878 |              0.808 |     0.813 |
-| **hybrid_rerank** |     **0.976** |          **0.846** | **0.829** |
+The reranked strategy achieves 1.000 Recall@5 on the hard tier, outperforming the other evaluated strategies.
 
-**Chunk level — hard tier (12 questions)**
+**3. Hybrid retrieval alone does not guarantee improvement.**
 
-| Mode              | Hit recall\@5 | Coverage recall\@5 |       MRR |
-| ----------------- | ------------: | -----------------: | --------: |
-| vector            |         0.583 |              0.472 |     0.583 |
-| bm25              |         0.750 |              0.625 |     0.507 |
-| hybrid            |         0.667 |              0.583 |     0.528 |
-| **hybrid_rerank** |     **1.000** |          **0.819** | **0.649** |
+Plain hybrid retrieval does not outperform vector search on the hard tier. Combining retrievers is not automatically better without effective ranking.
 
-### How to Read These Numbers
+**4. Quantitative evaluation makes retrieval decisions measurable.**
 
-- **Reranking gives the clearest gain**, especially on the hard tier at chunk level, where it lifts hit recall from 0.583 (vector) to 1.000.
-- **Plain hybrid does not reliably beat the best single retriever.** On hard questions it trails vector at document level and BM25 at chunk level, so fusion alone is not a guaranteed improvement.
-- On easy questions at chunk level, `hybrid_rerank` (0.966 hit recall) does not beat BM25 (1.000), so reranking is not a universal improvement either.
-- **Confidence intervals matter.** With only 12 hard questions, intervals are wide. For example, hard-tier BM25 document recall spans 0.50–1.00. The `1.000–1.000` interval for `hybrid_rerank` reflects zero misses in this sample, not certainty.
-- The corpus is small (29 documents), and the golden set is small. Treat these numbers as a comparison between strategies on this corpus, not as a general accuracy claim.
-- Chunk labels are tied to chunk IDs such as `a2a_agent_discovery-3`. If `CHUNK_WORDS`, `CHUNK_OVERLAP`, or the corpus changes, chunk IDs may shift and the chunk-level labels must be regenerated.
-- The optional `--judge` faithfulness check uses the same Ollama model that generates the answer. It is a preliminary self-judge, not an independent evaluation, and it is not included in the committed results.
+Using a fixed golden dataset allows different retrieval approaches to be compared consistently.
 
-## Testing and CI
+### Benchmark Caveats
 
-Run the unit tests:
+These results should be interpreted within the scope of the experiment:
 
-```bash
-python -m pytest -q tests
-```
+- The corpus contains only 29 documents.
+- The evaluation dataset contains 41 questions.
+- The hard tier contains only 12 questions.
+- Matching is document-level rather than passage-level.
+- The optional LLM-judge faithfulness results are not included in the committed benchmark results.
 
-Unit tests cover:
+These metrics demonstrate comparative retrieval performance on this specific corpus. They are not a general accuracy guarantee.
 
-- Chunking size and overlap
-- Empty input
-- Invalid overlap
-- Reciprocal Rank Fusion
-
-These tests do not require model downloads and run in seconds.
-
-### GitHub Actions
-
-GitHub Actions (`.github/workflows/ci.yml`) runs four jobs on pushes and pull requests to `main`.
-
-| Job                                  | What it does                                                                                                                                |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Python Unit Tests**                | Installs pytest and runs `tests/`                                                                                                           |
-| **React Production Build**           | Runs `npm ci` and `npm run build` in `frontend/` using Node 22                                                                              |
-| **Docker Image Build**               | Builds the API Docker image                                                                                                                 |
-| **RAG Retrieval Quality Evaluation** | Installs dependencies, rebuilds the index, runs `python -m eval.run_eval --min-recall 0.95`, and uploads `eval/results.json` as an artifact |
-
-The evaluation job fails the build if `hybrid_rerank` document-level Recall\@5 drops below **0.95**. This helps guard against retrieval regressions caused by changes to chunking, embeddings, or fusion.
-
-The evaluation job has a 45-minute timeout and caches Hugging Face model files to reduce repeated downloads.
+---
 
 ## Project Structure
 
 ```text
 RAGOps-Engine/
+│
 ├── app/
-│   ├── main.py          # FastAPI app (/health, /ask)
-│   ├── retrieval.py     # Vector, BM25, hybrid, reranking
-│   ├── fusion.py        # Reciprocal Rank Fusion
-│   ├── chunking.py      # Word-window chunking with overlap
-│   ├── ingest.py        # Builds ChromaDB index + chunks.json
-│   ├── llm.py           # Prompt construction + Ollama client
-│   └── config.py        # Environment-driven settings
+│   ├── main.py              # FastAPI application and endpoints
+│   ├── retrieval.py         # Retrieval strategies and reranking
+│   ├── fusion.py            # Reciprocal Rank Fusion
+│   ├── chunking.py          # Text chunking and overlap
+│   ├── ingest.py            # Document ingestion and indexing
+│   ├── llm.py               # Prompt construction and Ollama client
+│   └── config.py            # Environment configuration
+│
 ├── data/
-│   ├── raw/             # Cleaned source documents (29)
-│   └── index/           # Generated index (gitignored)
+│   ├── raw/                 # Cleaned documentation corpus
+│   └── index/               # Persistent ChromaDB index
+│
 ├── eval/
-│   ├── golden.jsonl     # 41 labelled questions
-│   ├── run_eval.py      # Retrieval metrics, bootstrap CIs, optional judge
-│   └── results.json    # Latest evaluation results
-├── frontend/            # React + Vite chat UI
-│   ├── src/App.jsx
-│   └── vite.config.js   # Development proxy: /api -> API
+│   ├── golden.jsonl         # Evaluation question dataset
+│   ├── run_eval.py          # Evaluation runner
+│   └── results.json         # Evaluation results
+│
+├── frontend/                # React 19 + Vite application
+│
 ├── scripts/
-│   └── build_corpus.py  # Downloads and cleans documents
+│   └── build_corpus.py      # Corpus download and cleaning
+│
 ├── tests/
-│   └── test_units.py    # Chunking and RRF unit tests
-├── .github/workflows/ci.yml
+│   └── test_units.py        # Chunking and RRF unit tests
+│
+├── docs/
+│   ├── Home.png
+│   ├── Result.png
+│   ├── Result_2.png
+│   ├── Evaluation.png
+│   └── Retrieval_Strategy.png
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml           # GitHub Actions workflow
+│
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
-└── .env.example
+├── .env.example
+└── README.md
 ```
 
-## Configuration
+---
 
-Set these variables in `.env` (copied from `.env.example`) or as environment variables.
+## Testing & Continuous Integration
 
-| Variable        | Default                                | Purpose                |
-| --------------- | -------------------------------------- | ---------------------- |
-| `OLLAMA_URL`    | `http://localhost:11434`               | Ollama server          |
-| `LLM_MODEL`     | `llama3.2:3b`                          | Generation model       |
-| `EMBED_MODEL`   | `BAAI/bge-small-en-v1.5`               | Embedding model        |
-| `RERANK_MODEL`  | `cross-encoder/ms-marco-MiniLM-L-6-v2` | Cross-encoder          |
-| `CHUNK_WORDS`   | `180`                                  | Words per chunk        |
-| `CHUNK_OVERLAP` | `40`                                   | Overlap between chunks |
+### Running Tests
 
-> `CHUNK_WORDS` and `CHUNK_OVERLAP` are read by `app/config.py` but are not listed in `.env.example`. Add them to `.env` if you want to tune them. Re-run `python -m app.ingest` after changing the embedding model or chunk settings.
+Execute the unit test suite:
 
-## Troubleshooting
+```bash
+python -m pytest -q tests
+```
 
-| Symptom                                                       | Likely cause and fix                                                                                                                                  |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `503 LLM backend unavailable`                                 | Ollama is not running or the model is not pulled. Start Ollama and run `ollama pull llama3.2:3b`. In Docker, confirm `host.docker.internal` resolves. |
-| `FileNotFoundError: chunks.json` or missing collection `docs` | The index has not been built. Run `python -m app.ingest`.                                                                                             |
-| `No files in data/raw`                                        | The corpus is missing. Run `python scripts/build_corpus.py`.                                                                                          |
-| Frontend shows **API Offline**                                | The API is not running on port 8000, or you opened a built `dist/` directory instead of the Vite development server.                                  |
-| First request is very slow                                    | Models load lazily on first use. Subsequent requests should be faster.                                                                                |
-| Answers ignore citations or over-answer                       | The 3B model is small. Try a larger `LLM_MODEL` or lower `k`.                                                                                         |
-| Chunk-level evaluation numbers look wrong after a change      | Chunk IDs may have changed. Regenerate `relevant_chunk_ids` in `eval/golden.jsonl`.                                                                   |
+### GitHub Actions
+
+The GitHub Actions workflow runs on pushes and pull requests to `main`.
+
+The CI pipeline includes:
+
+- Python unit tests.
+- Frontend production build.
+- Docker image build.
+
+This provides automated validation of the core application components and build configuration.
+
+---
+
+## Engineering Decisions
+
+| Decision | Reasoning |
+|---|---|
+| Local LLM through Ollama | Avoid hosted inference dependencies and API keys |
+| Dense + BM25 retrieval | Combine semantic understanding with lexical matching |
+| Reciprocal Rank Fusion | Merge independent retrieval rankings |
+| Cross-encoder reranking | Improve relevance ordering of retrieved candidates |
+| ChromaDB persistence | Maintain a reusable local vector index |
+| Golden evaluation dataset | Compare retrieval strategies consistently |
+| Recall@K and MRR | Measure retrieval coverage and ranking quality |
+| FastAPI | Provide a structured API interface |
+| React + Vite | Provide an interactive user experience |
+| Docker | Simplify environment setup and application packaging |
+| GitHub Actions | Automate testing and build validation |
+
+---
 
 ## Limitations
 
-- Small, single-domain corpus with only 29 documents.
-- Small evaluation set with 41 questions, including only 12 hard questions.
-- Document-level metrics can be satisfied by any chunk from the expected document. Chunk-level metrics are stricter but depend on stable chunk IDs.
-- A 3B-parameter local model can miss citations or over-answer. Answer quality depends heavily on the model used.
-- Answer quality is not scored by the committed evaluation; the committed evaluation measures retrieval.
-- The golden set contains no unanswerable questions, so the system's "I don't know" behaviour is untested.
-- Code blocks are removed from the corpus.
-- No authentication, rate limiting, CORS configuration, or streaming. The application is intended for local use and demos, not direct internet exposure.
-- The retriever and models are loaded in-process, so each Uvicorn worker holds its own copy.
+Current implementation limitations:
+
+- Small, single-domain documentation corpus.
+- Limited evaluation dataset.
+- Document-level rather than passage-level evaluation.
+- A 3B-parameter local model may occasionally miss citations or produce unsupported statements.
+- Code blocks are removed during preprocessing.
+- No authentication or rate limiting.
+- No streaming responses.
+- Primarily designed for local deployment and technical demonstration.
+
+---
 
 ## Roadmap
 
-- [x] Chunk-level evaluation with bootstrap confidence intervals
-- [x] Run the recall gate in CI
-- [x] Larger golden set, including unanswerable questions
-- [x] Independent judge model for faithfulness scoring
-- [x] API tests with a mocked retriever and LLM
-- [ ] Streaming responses
-- [ ] Heading-aware chunking with document titles prepended
-- [ ] Serve the built frontend from the API container
-- [ ] Health check that verifies the index and Ollama connection
+- [ ] Introduce passage-level retrieval evaluation.
+- [ ] Expand the golden dataset.
+- [ ] Add unanswerable questions to evaluate retrieval and generation behavior.
+- [ ] Integrate the Recall@K threshold into CI.
+- [ ] Add API integration tests using mocked retriever and LLM components.
+- [ ] Implement streaming responses.
+- [ ] Introduce heading-aware chunking.
+- [ ] Prepend document titles and section headings to retrieved passages.
+- [ ] Expand the documentation corpus across additional technical domains.
+
+---
 
 ## Acknowledgements
 
-Documentation corpus from the [Hugging Face Transformers](https://github.com/huggingface/transformers), [PEFT](https://github.com/huggingface/peft), and [A2A](https://github.com/a2aproject/A2A) repositories (Apache-2.0 licensed).
+The documentation corpus is built from openly licensed documentation sourced from:
 
-Built with FastAPI, ChromaDB, sentence-transformers, rank-bm25, Ollama, React, and Vite.
+- Hugging Face Transformers
+- Hugging Face PEFT
+- A2A (Agent2Agent) Protocol
+
+---
 
 ## License
 
-No license file is included yet. Add a `LICENSE` file (MIT or Apache-2.0 are common choices) and update this section before publishing.
+A license file has not yet been added.
+
+MIT and Apache-2.0 are common choices for open-source projects. Add a `LICENSE` file before declaring the repository's license.
+
+---
+
+**Built as an independent AI engineering project focused on retrieval quality, grounded generation, local inference, and measurable evaluation.**
