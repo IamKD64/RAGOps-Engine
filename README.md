@@ -3,7 +3,6 @@
 
 
 
-\
 
 
 A **local-first Retrieval-Augmented Generation (RAG) system** that answers questions over a technical document corpus and cites its sources. It combines dense vector search, BM25 keyword search, Reciprocal Rank Fusion (RRF), and cross-encoder reranking, then generates grounded answers with a locally hosted LLM through [Ollama](https://ollama.com).
